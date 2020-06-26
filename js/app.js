@@ -2,10 +2,8 @@
     'use strict';
     window.addEventListener('load',init,false);
     var canvas=null,ctx=null;
-    var lastPress=null;
+    var lastUpdate=0;
     var mousex=0,mousey=0;
-    var score=0;
-    var bgColor='#000';
     var player=new Circle(0,0,5);
     var target=new Circle(100,100,10);
 
@@ -14,25 +12,26 @@
         ctx=canvas.getContext('2d');
         canvas.width=300;
         canvas.height=200;
-
-        enableInputs();
+        
         run();
-    }
-
-    function random(max){
-        return ~~(Math.random()*max);
     }
 
     function run(){
         requestAnimationFrame(run);
-        act();
+            
+        var now=Date.now();
+        var deltaTime=(now-lastUpdate)/1000;
+        if(deltaTime>1)deltaTime=0;
+        lastUpdate=now;
+        
+        act(deltaTime);
         paint(ctx);
     }
 
-    function act(){
+    function act(deltaTime){
         player.x=mousex;
         player.y=mousey;
-
+        
         if(player.x<0)
             player.x=0;
         if(player.x>canvas.width)
@@ -41,50 +40,38 @@
             player.y=0;
         if(player.y>canvas.height)
             player.y=canvas.height;
-
-        if(lastPress==1){
-            bgColor='#333';
-            if(player.distance(target)<0){
-                score++;
-                target.x=random(canvas.width/10-1)*10+target.radius;
-                target.y=random(canvas.height/10-1)*10+target.radius;
-            }
+        
+        if(target.distance(player)>0){
+            var angle=target.getAngle(player);
+            target.move(angle,deltaTime*100);
         }
-        else
-            bgColor='#000';
     }
 
     function paint(ctx){
-        ctx.fillStyle=bgColor;
+        ctx.fillStyle='#000';
         ctx.fillRect(0,0,canvas.width,canvas.height);
         
-        ctx.strokeStyle='#f00';
-        target.stroke(ctx);
         ctx.strokeStyle='#0f0';
         player.stroke(ctx);
-
+        ctx.strokeStyle='#f00';
+        target.stroke(ctx);
+        
         ctx.fillStyle='#fff';
-        ctx.fillText('Distance: '+player.distance(target).toFixed(1),0,10);
-        ctx.fillText('Score: '+score,0,20);
-        lastPress=null;
+        ctx.fillText('Distance: '+player.distance(target).toFixed(1),10,10);
+        ctx.fillText('Angle: '+(player.getAngle(target)*(180/Math.PI)).toFixed(1),10,20);
     }
 
-    function enableInputs(){
-        document.addEventListener('mousemove',function(evt){
-            mousex=evt.pageX-canvas.offsetLeft;
-            mousey=evt.pageY-canvas.offsetTop;
-        },false);
-        canvas.addEventListener('mousedown',function(evt){
-            lastPress=evt.which;
-        },false);
-    }
+    document.addEventListener('mousemove',function(evt){
+        mousex=evt.pageX-canvas.offsetLeft;
+        mousey=evt.pageY-canvas.offsetTop;
+    },false);
 
     function Circle(x,y,radius){
         this.x=(x==null)?0:x;
         this.y=(y==null)?0:y;
         this.radius=(radius==null)?0:radius;
     }
-
+        
     Circle.prototype.distance=function(circle){
         if(circle!=null){
             var dx=this.x-circle.x;
@@ -92,7 +79,19 @@
             return (Math.sqrt(dx*dx+dy*dy)-(this.radius+circle.radius));
         }
     }
-    
+
+    Circle.prototype.getAngle=function(circle){
+        if(circle!=null)
+            return (Math.atan2(circle.y-this.y,circle.x-this.x));
+    }
+
+    Circle.prototype.move=function(angle,speed){
+        if(speed!=null){
+            this.x+=Math.cos(angle)*speed;
+            this.y+=Math.sin(angle)*speed;
+        }
+    }
+
     Circle.prototype.stroke=function(ctx){
         ctx.beginPath();
         ctx.arc(this.x,this.y,this.radius,0,Math.PI*2,true);
