@@ -2,7 +2,9 @@
     'use strict';
     window.addEventListener('load',init,false);
     var canvas=null,ctx=null;
+    var lastPress=null;
     var mousex=0,mousey=0;
+    var score=0;
     var bgColor='#000';
     var player=new Circle(0,0,5);
     var target=new Circle(100,100,10);
@@ -13,7 +15,12 @@
         canvas.width=300;
         canvas.height=200;
 
+        enableInputs();
         run();
+    }
+
+    function random(max){
+        return ~~(Math.random()*max);
     }
 
     function run(){
@@ -35,8 +42,14 @@
         if(player.y>canvas.height)
             player.y=canvas.height;
 
-        if(player.distance(target)<0)
+        if(lastPress==1){
             bgColor='#333';
+            if(player.distance(target)<0){
+                score++;
+                target.x=random(canvas.width/10-1)*10+target.radius;
+                target.y=random(canvas.height/10-1)*10+target.radius;
+            }
+        }
         else
             bgColor='#000';
     }
@@ -45,19 +58,26 @@
         ctx.fillStyle=bgColor;
         ctx.fillRect(0,0,canvas.width,canvas.height);
         
-        ctx.strokeStyle='#0f0';
-        player.stroke(ctx);
         ctx.strokeStyle='#f00';
         target.stroke(ctx);
+        ctx.strokeStyle='#0f0';
+        player.stroke(ctx);
 
         ctx.fillStyle='#fff';
-        ctx.fillText('Distance: '+player.distance(target).toFixed(1),10,10);
+        ctx.fillText('Distance: '+player.distance(target).toFixed(1),0,10);
+        ctx.fillText('Score: '+score,0,20);
+        lastPress=null;
     }
 
-    document.addEventListener('mousemove',function(evt){
-        mousex=evt.pageX-canvas.offsetLeft;
-        mousey=evt.pageY-canvas.offsetTop;
-    },false);
+    function enableInputs(){
+        document.addEventListener('mousemove',function(evt){
+            mousex=evt.pageX-canvas.offsetLeft;
+            mousey=evt.pageY-canvas.offsetTop;
+        },false);
+        canvas.addEventListener('mousedown',function(evt){
+            lastPress=evt.which;
+        },false);
+    }
 
     function Circle(x,y,radius){
         this.x=(x==null)?0:x;
